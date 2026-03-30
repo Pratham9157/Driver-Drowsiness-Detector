@@ -44,15 +44,21 @@ A computer-vision based system that monitors driver alertness in real-time using
 
 ```
 .
-├── driver2.py            # Core drowsiness detection engine
-├── dashboard.py          # Flask web dashboard server
-├── driver_config.py      # Tkinter GUI for driver credentials
-├── driver_config.json    # Stored driver configuration
-├── get_location.ps1      # PowerShell script for GPS coordinates
-├── templates/
-│   └── index.html        # Dashboard UI template
+├── main.py               # Entry point — launches server & detector together
 ├── requirements.txt      # Project dependencies
-└── README.md             # Project documentation
+├── README.md             # Project documentation
+├── config/
+│   └── driver.json       # Stored driver configuration
+├── data/
+│   └── alerts.json       # Persisted alert history
+├── scripts/
+│   └── get_location.ps1  # PowerShell script for GPS coordinates
+├── src/
+│   ├── detector.py       # Core drowsiness detection engine
+│   ├── server.py         # Flask web dashboard server
+│   └── setup_driver.py   # Tkinter GUI for driver credentials
+└── templates/
+    └── dashboard.html    # Dashboard UI template
 ```
 
 ## Getting Started
@@ -79,18 +85,19 @@ GOOGLE_MAPS_API_KEY=your_key_here
 
 **1. Configure driver credentials (optional)**
 ```bash
-python driver_config.py
+python src/setup_driver.py
 ```
 
-**2. Start the monitoring dashboard**
+**2. Start both the dashboard and detection together**
 ```bash
-python dashboard.py
+python main.py
 ```
-Dashboard will be available at `http://localhost:5000`
+This launches the Flask dashboard (`src/server.py`) and the detection engine (`src/detector.py`) as parallel processes. Dashboard will be available at `http://localhost:5000`.
 
-**3. Start the detection system**
+Alternatively, run each component separately:
 ```bash
-python driver2.py
+python src/server.py    # dashboard only
+python src/detector.py  # detection only
 ```
 Follow the on-screen calibration prompts, then detection begins automatically. Press `ESC` to stop.
 
@@ -98,11 +105,11 @@ Follow the on-screen calibration prompts, then detection begins automatically. P
 
 | Parameter | Location | Default |
 |---|---|---|
-| Sleep alert threshold | `driver2.py` | 5 seconds |
-| Drowsy alert threshold | `driver2.py` | 7 seconds |
-| Location update interval | `driver2.py` | 5 seconds |
-| Camera resolution | `driver2.py` | 640 × 480 |
-| EAR smoothing buffer | `driver2.py` | 5 frames |
+| Sleep alert threshold | `src/detector.py` | 5 seconds |
+| Drowsy alert threshold | `src/detector.py` | 7 seconds |
+| Location update interval | `src/detector.py` | 5 seconds |
+| Camera resolution | `src/detector.py` | 640 × 480 |
+| EAR smoothing buffer | `src/detector.py` | 5 frames |
 
 ## Future Scope
 

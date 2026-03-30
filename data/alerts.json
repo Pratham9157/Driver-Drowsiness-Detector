@@ -1,0 +1,18 @@
+[
+    {
+        "timestamp": "2026-03-30 23:49:20",
+        "driver": {
+            "name": "Shivam Singh",
+            "id": "DRV12345",
+            "vehicle": "RJ-01-AB-1234",
+            "phone": "+91 9193576676"
+        },
+        "status": "SLEEPING !!!",
+        "duration": 5.697752952575684,
+        "location": {
+            "latitude": 26.8605805,
+            "longitude": 75.81921,
+            "address": "Jaipur Municipal Corporation, Sanganer Tehsil, Jaipur, Rajasthan, 302014, India"
+        }
+    }
+]

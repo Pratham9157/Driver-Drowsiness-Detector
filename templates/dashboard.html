@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Drowsiness Alert Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        .alert-card {
+            border-left: 5px solid #dc3545;
+            margin-bottom: 15px;
+        }
+
+        .sleeping-alert {
+            background-color: #ffebee;
+        }
+
+        .drowsy-alert {
+            background-color: #fff8e1;
+            border-left-color: #ff9800;
+        }
+
+        #map {
+            height: 300px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #dc3545;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: none;
+            z-index: 1000;
+            max-width: 350px;
+        }
+
+        .follow-control {
+            background: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Driver Drowsiness Alert Dashboard</h1>
+
+        <div class="notification" id="notification">
+            <h4>New Alert!</h4>
+            <p id="notification-text"></p>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Alert Statistics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="text-center border p-3 rounded">
+                                    <h2 id="sleeping-count">0</h2>
+                                    <p class="mb-0">Sleeping Alerts</p>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center border p-3 rounded">
+                                    <h2 id="drowsy-count">0</h2>
+                                    <p class="mb-0">Drowsy Alerts</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Alert Locations</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="map"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Recent Alerts</h5>
+            </div>
+            <div class="card-body">
+                <div id="alerts-container">
+                    {% if alerts %}
+                    {% for alert in alerts %}
+                    <div
+                        class="card alert-card {% if alert.status == 'SLEEPING !!!' %}sleeping-alert{% else %}drowsy-alert{% endif %}">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <h5 class="card-title">{{ alert.status }}</h5>
+                                    <h6 class="card-subtitle mb-2 text-muted">{{ alert.timestamp }}</h6>
+                                    <p><strong>Duration:</strong> {{ alert.duration|round(1) }} seconds</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6>Driver Information</h6>
+                                    <p class="mb-1"><strong>Name:</strong> {{ alert.driver.name }}</p>
+                                    <p class="mb-1"><strong>ID:</strong> {{ alert.driver.id }}</p>
+                                    <p class="mb-1"><strong>Vehicle:</strong> {{ alert.driver.vehicle }}</p>
+                                    <p class="mb-1"><strong>Phone:</strong> {{ alert.driver.phone }}</p>
+                                    <button class="btn btn-danger mt-2"
+                                        onclick="callDriver('{{ alert.driver.phone }}')">
+                                        <i class="bi bi-telephone-fill"></i> Call Now
+                                    </button>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6>Location</h6>
+                                    <p class="mb-1">{{ alert.location.address }}</p>
+                                    <p class="mb-1">
+                                        <strong>Coordinates:</strong>
+                                        {{ alert.location.latitude }}, {{ alert.location.longitude }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-center">No alerts recorded yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+
+        // --- Map setup (Leaflet, no API key needed) ---
+        const map = L.map('map').setView([20.5937, 78.9629], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        const followControl = L.control({ position: 'topright' });
+        followControl.onAdd = () => {
+            const div = L.DomUtil.create('div', 'follow-control');
+            div.innerHTML = `<label><input type="checkbox" id="followDriver" checked> Follow Driver</label>
+                             <div id="lastUpdate" class="text-muted" style="font-size:0.8rem">Last Update: Never</div>`;
+            L.DomEvent.disableClickPropagation(div);
+            return div;
+        };
+        followControl.addTo(map);
+
+        let driverMarker = null;
+        let driverPath = [];
+        let pathLine = L.polyline([], { color: '#4285F4', weight: 2 }).addTo(map);
+        const alertMarkers = [];
+
+        function statusColor(status) {
+            if (status === 'SLEEPING !!!') return '#dc3545';
+            if (status === 'Drowsy !') return '#ffc107';
+            return '#28a745';
+        }
+
+        function addMarker(lat, lng, status) {
+            const color = statusColor(status);
+            const icon = L.divIcon({
+                className: '',
+                html: `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 0 4px rgba(0,0,0,.4)"></div>`,
+                iconSize: [14, 14],
+                iconAnchor: [7, 7]
+            });
+            const marker = L.marker([lat, lng], { icon }).addTo(map)
+                .bindPopup(`<strong>${status}</strong><br>${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+            alertMarkers.push(marker);
+            map.setView([lat, lng], 15);
+        }
+
+        // --- Socket.IO: new alert ---
+        socket.on('new_alert', function (data) {
+            const alertsContainer = document.getElementById('alerts-container');
+            const alertCard = document.createElement('div');
+            alertCard.className = `card alert-card ${data.status === 'SLEEPING !!!' ? 'sleeping-alert' : 'drowsy-alert'}`;
+            alertCard.innerHTML = `
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h5 class="card-title">${data.status}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">${data.timestamp}</h6>
+                            <p><strong>Duration:</strong> ${data.duration.toFixed(1)} seconds</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Driver Information</h6>
+                            <p class="mb-1"><strong>Name:</strong> ${data.driver.name}</p>
+                            <p class="mb-1"><strong>ID:</strong> ${data.driver.id}</p>
+                            <p class="mb-1"><strong>Vehicle:</strong> ${data.driver.vehicle}</p>
+                            <p class="mb-1"><strong>Phone:</strong> ${data.driver.phone}</p>
+                            <button class="btn btn-danger mt-2" onclick="callDriver('${data.driver.phone}')">
+                                <i class="bi bi-telephone-fill"></i> Call Now
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Location</h6>
+                            <p class="mb-1">${data.location.address}</p>
+                            <p class="mb-1"><strong>Coordinates:</strong> ${data.location.latitude}, ${data.location.longitude}</p>
+                        </div>
+                    </div>
+                </div>`;
+
+            if (alertsContainer.firstChild) {
+                alertsContainer.insertBefore(alertCard, alertsContainer.firstChild);
+            } else {
+                alertsContainer.appendChild(alertCard);
+            }
+
+            const countId = data.status === 'SLEEPING !!!' ? 'sleeping-count' : 'drowsy-count';
+            document.getElementById(countId).textContent =
+                parseInt(document.getElementById(countId).textContent) + 1;
+
+            document.getElementById('notification-text').textContent =
+                `${data.driver.name} (${data.driver.vehicle}) is ${data.status} at ${data.location.address}`;
+            const notif = document.getElementById('notification');
+            notif.style.display = 'block';
+            setTimeout(() => notif.style.display = 'none', 5000);
+
+            addMarker(data.location.latitude, data.location.longitude, data.status);
+        });
+
+        // --- Socket.IO: live location update ---
+        socket.on('location_update', function (data) {
+            const { latitude: lat, longitude: lng } = data.location;
+            const latlng = [lat, lng];
+
+            if (!driverMarker) {
+                const icon = L.divIcon({
+                    className: '',
+                    html: '<div style="width:14px;height:14px;border-radius:50%;background:#4285F4;border:2px solid #fff;box-shadow:0 0 4px rgba(0,0,0,.4)"></div>',
+                    iconSize: [14, 14], iconAnchor: [7, 7]
+                });
+                driverMarker = L.marker(latlng, { icon }).addTo(map).bindPopup('Driver Position');
+            } else {
+                driverMarker.setLatLng(latlng);
+            }
+            driverMarker.setIcon(L.divIcon({
+                className: '',
+                html: `<div style="width:14px;height:14px;border-radius:50%;background:${statusColor(data.status)};border:2px solid #fff;box-shadow:0 0 4px rgba(0,0,0,.4)"></div>`,
+                iconSize: [14, 14], iconAnchor: [7, 7]
+            }));
+
+            driverPath.push(latlng);
+            pathLine.setLatLngs(driverPath);
+
+            if (document.getElementById('followDriver').checked) {
+                map.setView(latlng, 15);
+            }
+            document.getElementById('lastUpdate').textContent =
+                `Last Update: ${new Date(data.timestamp).toLocaleTimeString()}`;
+        });
+
+        // --- Count alerts on page load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            let sleeping = 0, drowsy = 0;
+            document.querySelectorAll('.alert-card').forEach(card => {
+                if (card.classList.contains('sleeping-alert')) sleeping++;
+                else if (card.classList.contains('drowsy-alert')) drowsy++;
+            });
+            document.getElementById('sleeping-count').textContent = sleeping;
+            document.getElementById('drowsy-count').textContent = drowsy;
+        });
+
+        function callDriver(phone) {
+            window.location.href = `tel:${phone}`;
+        }
+    </script>
+</body>
+
+</html>
