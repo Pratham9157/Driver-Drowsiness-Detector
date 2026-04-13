@@ -37,31 +37,31 @@ This is the **enhanced version** of the original drowsiness detector, built from
 
 ```
 ┌─────────────────────────────────────────────────┐
-│         Per-Vehicle Detector Services            │
+│         Per-Vehicle Detector Services           │
 │ (MediaPipe + Head Pose + Fatigue + Local Cache) │
 └─────────────────┬───────────────────────────────┘
                   │ HTTP POST /alerts
                   │ (every 5 seconds)
                   v
 ┌─────────────────────────────────────────────────┐
-│      Central API Service (FastAPI + Async)       │
-│   • Alert ingestion & querying                   │
-│   • Fleet analytics                              │
-│   • WebSocket real-time updates                  │
+│      Central API Service (FastAPI + Async)      │
+│   • Alert ingestion & querying                  │
+│   • Fleet analytics                             │
+│   • WebSocket real-time updates                 │
 └─────────────────┬───────────────────────────────┘
                   │ WebSocket events
                   │ REST API responses
                   v
 ┌─────────────────────────────────────────────────┐
-│         Admin Dashboard (React + Vite)           │
-│   • Fleet map (Leaflet.js)                       │
-│   • Real-time vehicle status                     │
-│   • Analytics & trends                           │
+│         Admin Dashboard (React + Vite)          │
+│   • Fleet map (Leaflet.js)                      │
+│   • Real-time vehicle status                    │
+│   • Analytics & trends                          │
 └─────────────────────────────────────────────────┘
                   │
                   v
         ┌─────────────────────┐
-        │  MongoDB Database    │
+        │  MongoDB Database   │
         │  • Drivers          │
         │  • Vehicles         │
         │  • Alerts           │
