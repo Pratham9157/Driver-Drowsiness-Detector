@@ -1,10 +1,48 @@
-opencv-python
-dlib
-imutils
-numpy
-# winsound is part of the Windows standard library
-geopy
-flask
-flask-socketio
-requests
-python-dotenv
+# Core API & Web Framework
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.7.0
+pydantic-settings>=2.3.0
+python-multipart>=0.0.7
+
+# Database & ORM
+pymongo>=4.7.0
+mongoengine>=0.28.0
+motor>=3.4.0
+
+# Computer Vision & Deep Learning
+opencv-python>=4.9.0
+mediapipe==0.9.3.0
+numpy>=1.26.0
+scikit-learn>=1.4.0
+xgboost>=2.0.0
+
+# Real-time Communication
+python-socketio>=5.11.0
+python-engineio>=4.9.0
+aiohttp>=3.9.0
+
+# Audio (cross-platform)
+pydub>=0.25.1
+
+# Geolocation
+geopy>=2.4.0
+
+# Utilities
+requests>=2.32.0
+aiofiles>=24.1.0
+python-dotenv>=1.0.0
+pyyaml>=6.0.0
+
+# Logging & Monitoring
+python-json-logger>=2.0.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.23.0
+pytest-cov>=4.1.0
+
+# Development
+black>=24.0.0
+flake8>=7.0.0
+mypy>=1.10.0

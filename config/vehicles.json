@@ -1,0 +1,19 @@
+{
+  "vehicles": [
+    {
+      "vehicle_id": "vehicle_001",
+      "driver_id": "driver_001",
+      "make": "Toyota",
+      "model": "Camry",
+      "year": 2023,
+      "license_plate": "ABC123",
+      "detector_config": {
+        "detector_id": "detector_001",
+        "camera_index": 0,
+        "fps": 30,
+        "frame_width": 640,
+        "frame_height": 480
+      }
+    }
+  ]
+}
